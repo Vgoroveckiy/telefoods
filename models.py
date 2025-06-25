@@ -1,0 +1,43 @@
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(String, default="")
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    content: Mapped[dict] = mapped_column(JSON)
+    review: Mapped[str] = mapped_column(String, default="")
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    pay_status: Mapped[bool] = mapped_column(Boolean, default=False)
+    description: Mapped[str] = mapped_column(String, default="")
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    cost: Mapped[float] = mapped_column(Float)
+    product_type: Mapped[int] = mapped_column(Integer, ForeignKey("product_types.id"))
+    description: Mapped[str] = mapped_column(String, default="")
+
+
+class ProductType(Base):
+    __tablename__ = "product_types"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(String, default="")
