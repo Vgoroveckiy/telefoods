@@ -1,65 +1,116 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from sqlalchemy.orm import Session
 from models import Product, ProductType
 from database import SessionLocal
 
 
 class AdminPanel:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Управление продуктами и типами")
-        self.root.geometry("800x600")
+    def __init__(self, master):  # Используем более нейтральное 'master' вместо 'root_window'
+        self.master = master  # Переименовали для ясности
+        self.master.title("Управление продуктами и типами")
+        self.master.geometry("800x600")
 
-        # Раздел "Типы блюд"
+        # Инициализация всех атрибутов
+        self.new_type_entry = None
+        self.types_listbox = None
+        self.products_tree = None
+        self.product_name_entry = None
+        self.product_cost_entry = None
+        self.product_type_combobox = None
+
+        self.initialize_ui()
+
+    def initialize_ui(self):
+        """Инициализация всех компонентов UI"""
         self.setup_types_section()
-
-        # Раздел "Продукты"
         self.setup_products_section()
+        self.load_data()
 
-        # Загрузка данных
+    def load_data(self):
+        """Загрузка данных при старте"""
         self.load_types()
         self.load_products()
 
     def setup_types_section(self):
-        frame_types = tk.LabelFrame(self.root, text="Типы блюд", padx=10, pady=10)
+        frame_types = tk.LabelFrame(self.master, text="Типы блюд", padx=10, pady=10)
         frame_types.pack(fill="x", padx=10, pady=5)
 
+        # Контейнер для поля ввода и кнопки
+        input_frame = tk.Frame(frame_types)
+        input_frame.pack(side="left", fill="x", expand=True)
+
         # Поле для ввода нового типа
-        self.new_type_entry = tk.Entry(frame_types, width=30)
+        self.new_type_entry = tk.Entry(input_frame, width=30)
         self.new_type_entry.pack(side="left", padx=5)
 
         # Кнопка "Добавить тип"
         tk.Button(
-            frame_types,
+            input_frame,
             text="Добавить тип",
             command=self.add_product_type
         ).pack(side="left", padx=5)
 
-        # Список типов
-        self.types_listbox = tk.Listbox(frame_types, width=40, height=5)
-        self.types_listbox.pack(side="right", padx=5)
+        # Контейнер для списка и полосы прокрутки
+        list_frame = tk.Frame(frame_types)
+        list_frame.pack(side="right", fill="both", expand=True)
+
+        # Список типов с прокруткой
+        self.types_listbox = tk.Listbox(
+            list_frame,
+            width=40,
+            height=5,
+            exportselection=False
+        )
+
+        # Вертикальная полоса прокрутки
+        scrollbar = ttk.Scrollbar(
+            list_frame,
+            orient="vertical",
+            command=self.types_listbox.yview
+        )
+        self.types_listbox.configure(yscrollcommand=scrollbar.set)
+
+        # Размещение списка и полосы прокрутки
+        self.types_listbox.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
     def setup_products_section(self):
-        frame_products = tk.LabelFrame(self.root, text="Продукты", padx=10, pady=10)
+        frame_products = tk.LabelFrame(self.master, text="Продукты", padx=10, pady=10)
         frame_products.pack(fill="both", expand=True, padx=10, pady=5)
+
+        # Создаем фрейм для таблицы и полосы прокрутки
+        tree_frame = tk.Frame(frame_products)
+        tree_frame.pack(fill="both", expand=True)
 
         # Таблица продуктов
         columns = ("ID", "Name", "Cost", "Type")
         self.products_tree = ttk.Treeview(
-            frame_products,
+            tree_frame,
             columns=columns,
             show="headings",
-            height=10
+            height=10  # Количество отображаемых строк
         )
 
-        for col in columns:
-            self.products_tree.heading(col, text=col)
-            self.products_tree.column(col, width=150, anchor="center")
+        # Настройка колонок (как в предыдущем примере)
+        self.products_tree.heading("ID", text="ID", anchor="center")
+        self.products_tree.heading("Name", text="Name", anchor="w")
+        self.products_tree.heading("Cost", text="Cost", anchor="center")
+        self.products_tree.heading("Type", text="Type", anchor="w")
 
-        self.products_tree.pack(fill="both", expand=True)
+        self.products_tree.column("ID", width=50, anchor="center")
+        self.products_tree.column("Name", width=200, anchor="w")
+        self.products_tree.column("Cost", width=100, anchor="center")
+        self.products_tree.column("Type", width=150, anchor="w")
 
-        # Поля ввода и кнопки
+        # Вертикальная полоса прокрутки
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.products_tree.yview)
+        self.products_tree.configure(yscrollcommand=scrollbar.set)
+
+        # Размещаем таблицу и полосу прокрутки
+        self.products_tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Остальной код (поля ввода и кнопки) остается без изменений
         input_frame = tk.Frame(frame_products)
         input_frame.pack(fill="x", pady=10)
 
@@ -75,7 +126,6 @@ class AdminPanel:
         self.product_type_combobox = ttk.Combobox(input_frame, width=20)
         self.product_type_combobox.grid(row=0, column=5, padx=5)
 
-        # Кнопки управления
         btn_frame = tk.Frame(frame_products)
         btn_frame.pack()
 
@@ -105,7 +155,7 @@ class AdminPanel:
                 product.id,
                 product.name,
                 f"{product.cost:.2f}",
-                product.product_type_rel.name
+                product.type_rel.name
             ))
 
         db.close()
@@ -187,24 +237,31 @@ class AdminPanel:
             return
 
         db = SessionLocal()
-        product = db.query(Product).get(product_id)
-        product_type = db.query(ProductType).filter_by(name=type_name).first()
+        try:
+            # Обновленный код:
+            product = db.get(Product, product_id)
+            if not product:
+                messagebox.showerror("Ошибка", "Продукт не найден!")
+                return
 
-        if not product_type:
-            messagebox.showerror("Ошибка", "Выберите существующий тип!")
+            product_type = db.query(ProductType).filter_by(name=type_name).first()
+            if not product_type:
+                messagebox.showerror("Ошибка", "Выберите существующий тип!")
+                return
+
+            product.name = name
+            product.cost = cost
+            product.product_type = product_type.id
+
+            db.commit()
+            self.load_products()
+            messagebox.showinfo("Успех", "Продукт обновлен!")
+
+        except Exception as e:
+            db.rollback()
+            messagebox.showerror("Ошибка", f"Ошибка при обновлении: {str(e)}")
+        finally:
             db.close()
-            return
-
-        product.name = name
-        product.cost = cost
-        product.product_type = product_type.id
-
-        db.commit()
-        db.close()
-
-        self.clear_fields()
-        self.load_products()
-        messagebox.showinfo("Успех", "Продукт обновлен!")
 
     def clear_fields(self):
         self.product_name_entry.delete(0, tk.END)
@@ -213,6 +270,6 @@ class AdminPanel:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = AdminPanel(root)
-    root.mainloop()
+    main_window = tk.Tk()  # Переименовали для ясности
+    app = AdminPanel(main_window)
+    main_window.mainloop()
