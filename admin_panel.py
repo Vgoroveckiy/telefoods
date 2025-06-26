@@ -5,12 +5,12 @@ from database import SessionLocal
 
 
 class AdminPanel:
-    def __init__(self, master):  # Используем более нейтральное 'master' вместо 'root_window'
-        self.master = master  # Переименовали для ясности
+    def __init__(self, master):
+        self.master = master
         self.master.title("Управление продуктами и типами")
         self.master.geometry("800x600")
 
-        # Инициализация всех атрибутов
+        # Инициализация всех атрибутов UI в __init__
         self.new_type_entry = None
         self.types_listbox = None
         self.products_tree = None
@@ -18,7 +18,21 @@ class AdminPanel:
         self.product_cost_entry = None
         self.product_type_combobox = None
 
+        # Проверка БД (теперь static method)
+        self._initialize_database()
+
         self.initialize_ui()
+
+    @staticmethod
+    def _initialize_database():
+        """Проверяет наличие БД и создаёт таблицы при необходимости"""
+        from database import engine, Base
+        from pathlib import Path
+
+        db_file = Path("app.db")
+        if not db_file.exists():
+            Base.metadata.create_all(bind=engine)
+            print("БД создана автоматически!")
 
     def initialize_ui(self):
         """Инициализация всех компонентов UI"""
