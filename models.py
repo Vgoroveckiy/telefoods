@@ -1,5 +1,5 @@
 from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -33,6 +33,9 @@ class Product(Base):
     cost: Mapped[float] = mapped_column(Float)
     product_type: Mapped[int] = mapped_column(Integer, ForeignKey("product_types.id"))
     description: Mapped[str] = mapped_column(String, default="")
+
+    # Добавляем связь с типом продукта
+    type_rel: Mapped["ProductType"] = relationship("ProductType", backref="products")
 
 
 class ProductType(Base):
