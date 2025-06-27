@@ -8,8 +8,11 @@ from services import (
     get_orders_by_user, add_review_to_order, get_menu_messages
 )
 from collections import Counter
+import os
+from dotenv import load_dotenv
 
-API_TOKEN = '7140218880:AAFduzhengy108I-VUX76mxDtROcS4Jv3bc'
+load_dotenv()
+API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 MENU = {
     'menu': '🍽️ Меню',
