@@ -1,5 +1,6 @@
 from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.ext.mutable import MutableDict
 
 
 class Base(DeclarativeBase):
@@ -44,3 +45,11 @@ class ProductType(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String, default="")
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    content: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON), default={"products": []})
