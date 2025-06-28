@@ -12,6 +12,8 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 def init_db():
+    """Инициализировать базу данных путём создания всех таблиц, определённых в метаданных."""
+
     Base.metadata.create_all(bind=engine)
 
 

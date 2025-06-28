@@ -1,11 +1,23 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
-from models import Product, ProductType
+from tkinter import messagebox, ttk
+
 from database import SessionLocal
+from models import Product, ProductType
 
 
 class AdminPanel:
+    """
+    Класс для управления продуктами и их типами в GUI приложении.
+
+    Этот класс реализует интерфейс администратора для добавления, обновления и удаления продуктов и их типов из базы данных.
+    """
+
     def __init__(self, master):
+        """
+        Инициализация компонентов GUI.
+
+        Создает все необходимые виджеты и устанавливает их параметры. Также проверяет наличие и создает базу данных при необходимости.
+        """
         self.master = master
         self.master.title("Управление продуктами и типами")
         self.master.geometry("800x600")
@@ -25,9 +37,14 @@ class AdminPanel:
 
     @staticmethod
     def _initialize_database():
-        """Проверяет наличие БД и создаёт таблицы при необходимости"""
-        from database import engine, Base
+        """
+        Проверяет наличие базы данных и создает таблицы при необходимости.
+
+        Создает необходимые таблицы в базе данных, если их еще нет.
+        """
         from pathlib import Path
+
+        from database import Base, engine
 
         db_file = Path("app.db")
         if not db_file.exists():
@@ -35,17 +52,30 @@ class AdminPanel:
             print("БД создана автоматически!")
 
     def initialize_ui(self):
-        """Инициализация всех компонентов UI"""
+        """
+        Инициализирует все компоненты GUI.
+
+        Создает и размещает на форме все необходимые элементы пользовательского интерфейса.
+        """
         self.setup_types_section()
         self.setup_products_section()
         self.load_data()
 
     def load_data(self):
-        """Загрузка данных при старте"""
+        """
+        Загружает данные при старте.
+
+        Перезагружает список типов и продуктов из базы данных, когда окно открывается.
+        """
         self.load_types()
         self.load_products()
 
     def setup_types_section(self):
+        """
+        Устанавливает раздел с типами блюд.
+
+        Создает и размещает на форме элементы для ввода нового типа блюда и отображения списка существующих типов.
+        """
         frame_types = tk.LabelFrame(self.master, text="Типы блюд", padx=10, pady=10)
         frame_types.pack(fill="x", padx=10, pady=5)
 
@@ -58,11 +88,9 @@ class AdminPanel:
         self.new_type_entry.pack(side="left", padx=5)
 
         # Кнопка "Добавить тип"
-        tk.Button(
-            input_frame,
-            text="Добавить тип",
-            command=self.add_product_type
-        ).pack(side="left", padx=5)
+        tk.Button(input_frame, text="Добавить тип", command=self.add_product_type).pack(
+            side="left", padx=5
+        )
 
         # Контейнер для списка и полосы прокрутки
         list_frame = tk.Frame(frame_types)
@@ -70,17 +98,12 @@ class AdminPanel:
 
         # Список типов с прокруткой
         self.types_listbox = tk.Listbox(
-            list_frame,
-            width=40,
-            height=5,
-            exportselection=False
+            list_frame, width=40, height=5, exportselection=False
         )
 
         # Вертикальная полоса прокрутки
         scrollbar = ttk.Scrollbar(
-            list_frame,
-            orient="vertical",
-            command=self.types_listbox.yview
+            list_frame, orient="vertical", command=self.types_listbox.yview
         )
         self.types_listbox.configure(yscrollcommand=scrollbar.set)
 
@@ -89,6 +112,11 @@ class AdminPanel:
         scrollbar.pack(side="right", fill="y")
 
     def setup_products_section(self):
+        """
+        Устанавливает раздел с продуктами.
+
+        Создает и размещает на форме элементы для отображения продуктов, их добавления и обновления.
+        """
         frame_products = tk.LabelFrame(self.master, text="Продукты", padx=10, pady=10)
         frame_products.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -102,7 +130,7 @@ class AdminPanel:
             tree_frame,
             columns=columns,
             show="headings",
-            height=10  # Количество отображаемых строк
+            height=10,  # Количество отображаемых строк
         )
 
         # Настройка колонок (как в предыдущем примере)
@@ -117,14 +145,15 @@ class AdminPanel:
         self.products_tree.column("Type", width=150, anchor="w")
 
         # Вертикальная полоса прокрутки
-        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.products_tree.yview)
+        scrollbar = ttk.Scrollbar(
+            tree_frame, orient="vertical", command=self.products_tree.yview
+        )
         self.products_tree.configure(yscrollcommand=scrollbar.set)
 
         # Размещаем таблицу и полосу прокрутки
         self.products_tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Остальной код (поля ввода и кнопки) остается без изменений
         input_frame = tk.Frame(frame_products)
         input_frame.pack(fill="x", pady=10)
 
@@ -143,38 +172,54 @@ class AdminPanel:
         btn_frame = tk.Frame(frame_products)
         btn_frame.pack()
 
-        tk.Button(btn_frame, text="Добавить", command=self.add_product).pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Обновить", command=self.update_product).pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Очистить", command=self.clear_fields).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Добавить", command=self.add_product).pack(
+            side="left", padx=5
+        )
+        tk.Button(btn_frame, text="Обновить", command=self.update_product).pack(
+            side="left", padx=5
+        )
+        tk.Button(btn_frame, text="Очистить", command=self.clear_fields).pack(
+            side="left", padx=5
+        )
 
     def load_types(self):
+        """Загружает все доступные типы продуктов из базы данных и отображает их в списке и комбобоксе."""
         db = SessionLocal()
         types = db.query(ProductType).all()
         self.types_listbox.delete(0, tk.END)
-        self.product_type_combobox['values'] = []
+        self.product_type_combobox["values"] = []
 
         for product_type in types:
             self.types_listbox.insert(tk.END, product_type.name)
-            self.product_type_combobox['values'] = (*self.product_type_combobox['values'], product_type.name)
+            self.product_type_combobox["values"] = (
+                *self.product_type_combobox["values"],
+                product_type.name,
+            )
 
         db.close()
 
     def load_products(self):
+        """Загружает все доступные продукты из базы данных и отображает их в таблице."""
         db = SessionLocal()
         products = db.query(Product).join(ProductType).all()
         self.products_tree.delete(*self.products_tree.get_children())
 
         for product in products:
-            self.products_tree.insert("", tk.END, values=(
-                product.id,
-                product.name,
-                f"{product.cost:.2f}",
-                product.type_rel.name
-            ))
+            self.products_tree.insert(
+                "",
+                tk.END,
+                values=(
+                    product.id,
+                    product.name,
+                    f"{product.cost:.2f}",
+                    product.type_rel.name,
+                ),
+            )
 
         db.close()
 
     def add_product_type(self):
+        """Добавляет новый тип продукта в базу данных и обновляет список типов."""
         type_name = self.new_type_entry.get().strip()
         if not type_name:
             messagebox.showwarning("Ошибка", "Введите название типа!")
@@ -191,6 +236,7 @@ class AdminPanel:
         messagebox.showinfo("Успех", "Тип добавлен!")
 
     def add_product(self):
+        """Добавляет новый продукт в базу данных и обновляет таблицу продуктов."""
         name = self.product_name_entry.get().strip()
         cost = self.product_cost_entry.get().strip()
         type_name = self.product_type_combobox.get().strip()
@@ -213,11 +259,7 @@ class AdminPanel:
             db.close()
             return
 
-        new_product = Product(
-            name=name,
-            cost=cost,
-            product_type=product_type.id
-        )
+        new_product = Product(name=name, cost=cost, product_type=product_type.id)
 
         db.add(new_product)
         db.commit()
@@ -228,13 +270,14 @@ class AdminPanel:
         messagebox.showinfo("Успех", "Продукт добавлен!")
 
     def update_product(self):
+        """Обновляет существующий продукт в базе данных и обновляет таблицу продуктов."""
         selected = self.products_tree.selection()
         if not selected:
             messagebox.showwarning("Ошибка", "Выберите продукт для обновления!")
             return
 
         item = self.products_tree.item(selected[0])
-        product_id = item['values'][0]
+        product_id = item["values"][0]
 
         name = self.product_name_entry.get().strip()
         cost = self.product_cost_entry.get().strip()
@@ -278,9 +321,10 @@ class AdminPanel:
             db.close()
 
     def clear_fields(self):
+        """Очищает поля ввода для добавления и обновления продуктов."""
         self.product_name_entry.delete(0, tk.END)
         self.product_cost_entry.delete(0, tk.END)
-        self.product_type_combobox.set('')
+        self.product_type_combobox.set("")
 
 
 if __name__ == "__main__":
