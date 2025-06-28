@@ -6,6 +6,7 @@ from models import Base
 
 DATABASE_URL = "sqlite:///app.db"
 
+
 engine = create_engine(DATABASE_URL, echo=True)  # echo=True для отладки
 SessionLocal = sessionmaker(bind=engine)
 
