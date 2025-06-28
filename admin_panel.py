@@ -145,7 +145,6 @@ class AdminPanel:
 
         tk.Button(btn_frame, text="Добавить", command=self.add_product).pack(side="left", padx=5)
         tk.Button(btn_frame, text="Обновить", command=self.update_product).pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Очистить", command=self.clear_fields).pack(side="left", padx=5)
 
     def load_types(self):
         db = SessionLocal()
@@ -252,7 +251,6 @@ class AdminPanel:
 
         db = SessionLocal()
         try:
-            # Обновленный код:
             product = db.get(Product, product_id)
             if not product:
                 messagebox.showerror("Ошибка", "Продукт не найден!")
@@ -270,6 +268,7 @@ class AdminPanel:
             db.commit()
             self.load_products()
             messagebox.showinfo("Успех", "Продукт обновлен!")
+            self.clear_fields()  # ← Добавляем очистку полей здесь!
 
         except Exception as e:
             db.rollback()
