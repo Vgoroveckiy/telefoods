@@ -24,8 +24,7 @@ API_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 MENU = {
     "menu": "🍽️ Меню",
     "cart": "🛒 Корзина",
-    "orders": "📦 Мои заказы",
-    "feedback": "✉️ Обратная связь",
+    "orders": "📦 Мои заказы"
 }
 
 
@@ -189,15 +188,12 @@ class OrderHandler:
                         total += subtotal
                 text += f"Итого: {total:.2f}₽\n"
                 if order.review:
-                    text += f"Отзыв: {order.review}"
+                    text += f"💬 <b>Отзыв:</b>\n<i>«{order.review}»</i>\n"
                 else:
-                    text += f"\n✍ Напишите: Отзыв {order.id}"
-                self.bot.send_message(
-                    message.chat.id,
-                    text,
-                    parse_mode="HTML",
-                    reply_markup=self.main_menu,
-                )
+                    text += f"�� <b>Отзыв:</b>\n<i>отсутствует</i>\n"
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton("✍️ Оставить отзыв", callback_data=f"review_{order.id}"))
+                self.bot.send_message(message.chat.id, text, parse_mode='HTML', reply_markup=markup)
 
 
 class FeedbackHandler:
@@ -238,13 +234,11 @@ class FeedbackHandler:
 
     def save_review(self, message):
         """Сохраняет отзыв пользователя по заказу."""
-        order_id = int(self.user_states.pop(message.chat.id).split("_")[1])
+        order_id = int(self.user_states.pop(message.chat.id).split('_')[1])
         review_text = message.text
         with SessionLocal() as db:
             add_review_to_order(db, order_id, review_text)
-        self.bot.send_message(
-            message.chat.id, "Спасибо за отзыв!", reply_markup=self.main_menu
-        )
+        self.bot.send_message(message.chat.id, "Спасибо за отзыв!", reply_markup=self.main_menu)
 
 
 class TeleFoodBot:
@@ -256,49 +250,36 @@ class TeleFoodBot:
         self.bot = telebot.TeleBot(token)
         self.user_states = {}
         self.main_menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        self.main_menu.add(MENU["menu"], MENU["cart"])
-        self.main_menu.add(MENU["orders"], MENU["feedback"])
+        self.main_menu.add(MENU['menu'], MENU['cart'])
+        self.main_menu.add(MENU['orders'])
         # Handlers
         self.menu_handler = MenuHandler(self.bot)
         self.cart_handler = CartHandler(self.bot, self.main_menu)
         self.order_handler = OrderHandler(self.bot, self.main_menu)
-        self.feedback_handler = FeedbackHandler(
-            self.bot, self.main_menu, self.user_states
-        )
+        self.feedback_handler = FeedbackHandler(self.bot, self.main_menu, self.user_states)
         self.register_handlers()
 
     def register_handlers(self):
         """Регистрирует все хендлеры сообщений и callback-кнопок."""
-
-        @self.bot.message_handler(commands=["start"])
+        @self.bot.message_handler(commands=['start'])
         def handle_start(message):
             create_user_if_not_exists(SessionLocal(), str(message.from_user.id))
-            self.bot.send_message(
-                message.chat.id,
-                "Добро пожаловать в TeleFood!",
-                reply_markup=self.main_menu,
-            )
+            self.bot.send_message(message.chat.id, "Добро пожаловать в TeleFood!", reply_markup=self.main_menu)
             self.menu_handler.show_menu(message)
 
-        @self.bot.message_handler(func=lambda m: m.text == MENU["menu"])
+        @self.bot.message_handler(func=lambda m: m.text == MENU['menu'])
         def handle_menu(message):
             self.menu_handler.show_menu(message)
 
-        @self.bot.message_handler(func=lambda m: m.text == MENU["cart"])
+        @self.bot.message_handler(func=lambda m: m.text == MENU['cart'])
         def handle_cart(message):
             self.cart_handler.show_cart(message)
 
-        @self.bot.message_handler(func=lambda m: m.text == MENU["orders"])
+        @self.bot.message_handler(func=lambda m: m.text == MENU['orders'])
         def handle_orders(message):
             self.order_handler.show_orders(message)
 
-        @self.bot.message_handler(func=lambda m: m.text == MENU["feedback"])
-        def handle_feedback(message):
-            self.feedback_handler.handle_feedback(message)
-
-        @self.bot.message_handler(
-            func=lambda m: self.user_states.get(m.chat.id) == "awaiting_feedback"
-        )
+        @self.bot.message_handler(func=lambda m: self.user_states.get(m.chat.id) == 'awaiting_feedback')
         def save_feedback(message):
             self.feedback_handler.save_feedback(message)
 
@@ -306,9 +287,7 @@ class TeleFoodBot:
         def handle_review(message):
             self.feedback_handler.handle_review(message)
 
-        @self.bot.message_handler(
-            func=lambda m: self.user_states.get(m.chat.id, "").startswith("review_")
-        )
+        @self.bot.message_handler(func=lambda m: self.user_states.get(m.chat.id, '').startswith('review_'))
         def save_review(message):
             self.feedback_handler.save_review(message)
 
@@ -324,25 +303,24 @@ class TeleFoodBot:
         def add_to_cart(call):
             self.cart_handler.add_to_cart(call)
 
-        @self.bot.callback_query_handler(
-            func=lambda c: c.data.startswith("pay_online_")
-        )
+        @self.bot.callback_query_handler(func=lambda c: c.data.startswith("pay_online_"))
         def pay_online(call):
             order_id = call.data.split("_")[-1]
             self.bot.answer_callback_query(call.id)
-            self.bot.send_message(
-                call.message.chat.id,
-                f"Вы выбрали оплату онлайн для заказа №{order_id}. (Заглушка)",
-            )
+            self.bot.send_message(call.message.chat.id, f"Вы выбрали оплату онлайн для заказа №{order_id}. (Заглушка)")
 
         @self.bot.callback_query_handler(func=lambda c: c.data.startswith("pay_cash_"))
         def pay_cash(call):
             order_id = call.data.split("_")[-1]
             self.bot.answer_callback_query(call.id)
-            self.bot.send_message(
-                call.message.chat.id,
-                f"Вы выбрали оплату наличными для заказа №{order_id}. (Заглушка)",
-            )
+            self.bot.send_message(call.message.chat.id, f"Вы выбрали оплату наличными для заказа №{order_id}. (Заглушка)")
+
+        @self.bot.callback_query_handler(func=lambda c: c.data.startswith("review_"))
+        def review_callback(call):
+            order_id = int(call.data.split("_")[1])
+            self.feedback_handler.user_states[call.message.chat.id] = f"review_{order_id}"
+            self.bot.send_message(call.message.chat.id, f"Напишите отзыв для заказа №{order_id}:")
+            self.bot.answer_callback_query(call.id)
 
     def run(self):
         print("Бот запущен...")
