@@ -6,11 +6,14 @@ from models import Base
 
 DATABASE_URL = "sqlite:///app.db"
 
+
 engine = create_engine(DATABASE_URL, echo=True)  # echo=True для отладки
 SessionLocal = sessionmaker(bind=engine)
 
 
 def init_db():
+    """Инициализировать базу данных путём создания всех таблиц, определённых в метаданных."""
+
     Base.metadata.create_all(bind=engine)
 
 
