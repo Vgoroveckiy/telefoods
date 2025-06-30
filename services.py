@@ -5,22 +5,22 @@ from sqlalchemy.orm import Session
 from models import Cart, Order, Product, ProductType, User
 
 
-def create_user_if_not_exists(db: Session, tg_id: str) -> User:
-    """Получить или создать пользователя по телеграмм ID.
-    :param db: SQLAlchemy сессия
-    :param tg_id: ID пользователя Telegram
-    :return: Объект User
-    """
-    user = db.query(User).filter_by(name=tg_id).first()
+def create_user_if_not_exists(db: Session, tg_id: int, tg_name: str) -> tuple[int, str]:
+    """Получить или создать пользователя по телеграмм ID и имени."""
+    user = db.query(User).filter_by(id=tg_id).first()
     if not user:
-        user = User(name=tg_id, description="")
+        user = User(id=tg_id, name=tg_name, description="")
         db.add(user)
         db.commit()
         db.refresh(user)
         cart = Cart(user_id=user.id, content={"products": []})
         db.add(cart)
         db.commit()
-    return user
+    else:
+        if user.name != tg_name:
+            user.name = tg_name
+            db.commit()
+    return user.id, user.name
 
 
 def get_all_categories(db: Session) -> List[ProductType]:

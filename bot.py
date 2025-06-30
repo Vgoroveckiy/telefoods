@@ -71,8 +71,8 @@ class CartHandler:
     def show_cart(self, message):
         """Показывает содержимое корзины пользователя."""
         with SessionLocal() as db:
-            user = create_user_if_not_exists(db, str(message.from_user.id))
-            cart = get_cart(db, user.id)
+            user_id, user_name = create_user_if_not_exists(db, message.from_user.id, message.from_user.first_name)
+            cart = get_cart(db, user_id)
             if not cart or not cart.content.get("products"):
                 self.bot.send_message(
                     message.chat.id, "Корзина пуста.", reply_markup=self.main_menu
@@ -104,8 +104,8 @@ class CartHandler:
     def clear_cart(self, call):
         """Очищает корзину пользователя."""
         with SessionLocal() as db:
-            user = create_user_if_not_exists(db, str(call.from_user.id))
-            cart = get_cart(db, user.id)
+            user_id, user_name = create_user_if_not_exists(db, call.from_user.id, call.from_user.first_name)
+            cart = get_cart(db, user_id)
             if cart:
                 cart.content = {"products": []}
                 db.commit()
@@ -134,8 +134,8 @@ class CartHandler:
     def checkout(self, call):
         """Оформляет заказ из корзины пользователя и предлагает выбрать способ оплаты."""
         with SessionLocal() as db:
-            user = create_user_if_not_exists(db, str(call.from_user.id))
-            order = checkout_cart(db, user.id)
+            user_id, user_name = create_user_if_not_exists(db, call.from_user.id, call.from_user.first_name)
+            order = checkout_cart(db, user_id)
         if order:
             self.bot.send_message(
                 call.message.chat.id,
@@ -150,8 +150,8 @@ class CartHandler:
         """Добавляет товар в корзину пользователя."""
         product_id = int(call.data.split("_")[1])
         with SessionLocal() as db:
-            user = create_user_if_not_exists(db, str(call.from_user.id))
-            add_product_to_cart(db, user.id, product_id)
+            user_id, user_name = create_user_if_not_exists(db, call.from_user.id, call.from_user.first_name)
+            add_product_to_cart(db, user_id, product_id)
         self.bot.answer_callback_query(call.id, "Добавлено в корзину.")
         self.bot.send_message(
             call.message.chat.id,
@@ -171,8 +171,8 @@ class OrderHandler:
     def show_orders(self, message):
         """Показывает все оформленные заказы пользователя."""
         with SessionLocal() as db:
-            user = create_user_if_not_exists(db, str(message.from_user.id))
-            orders = get_orders_by_user(db, user.id)
+            user_id, user_name = create_user_if_not_exists(db, message.from_user.id, message.from_user.first_name)
+            orders = get_orders_by_user(db, user_id)
             if not orders:
                 self.bot.send_message(message.chat.id, "У вас нет заказов.")
                 return
@@ -190,7 +190,7 @@ class OrderHandler:
                 if order.review:
                     text += f"💬 <b>Отзыв:</b>\n<i>«{order.review}»</i>\n"
                 else:
-                    text += f"�� <b>Отзыв:</b>\n<i>отсутствует</i>\n"
+                    text += f" <b>Отзыв:</b>\n<i>отсутствует</i>\n"
                 markup = types.InlineKeyboardMarkup()
                 markup.add(types.InlineKeyboardButton("✍️ Оставить отзыв", callback_data=f"review_{order.id}"))
                 self.bot.send_message(message.chat.id, text, parse_mode='HTML', reply_markup=markup)
@@ -263,9 +263,9 @@ class TeleFoodBot:
         """Регистрирует все хендлеры сообщений и callback-кнопок."""
         @self.bot.message_handler(commands=['start'])
         def handle_start(message):
-            create_user_if_not_exists(SessionLocal(), str(message.from_user.id))
-            self.bot.send_message(message.chat.id, "Добро пожаловать в TeleFood!", reply_markup=self.main_menu)
-            self.menu_handler.show_menu(message)
+            user_id, user_name = create_user_if_not_exists(SessionLocal(), message.from_user.id, message.from_user.first_name)
+            self.bot.send_message(message.chat.id, f"Добро пожаловать, {user_name}, в TeleFood!", reply_markup=self.main_menu)
+            # self.menu_handler.show_menu(message)
 
         @self.bot.message_handler(func=lambda m: m.text == MENU['menu'])
         def handle_menu(message):
