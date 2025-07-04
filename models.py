@@ -1,6 +1,8 @@
-from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+import datetime
+
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -20,6 +22,9 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
     review: Mapped[str] = mapped_column(String, default="")
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     pay_status: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -52,4 +57,6 @@ class Cart(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-    content: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON), default={"products": []})
+    content: Mapped[dict] = mapped_column(
+        MutableDict.as_mutable(JSON), default={"products": []}
+    )

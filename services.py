@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -16,10 +17,9 @@ def create_user_if_not_exists(db: Session, tg_id: int, tg_name: str) -> tuple[in
         cart = Cart(user_id=user.id, content={"products": []})
         db.add(cart)
         db.commit()
-    else:
-        if user.name != tg_name:
-            user.name = tg_name
-            db.commit()
+    elif user.name != tg_name:
+        user.name = tg_name
+        db.commit()
     return user.id, user.name
 
 
@@ -71,15 +71,24 @@ def checkout_cart(db: Session, user_id: int) -> Optional[Order]:
     cart = get_cart(db, user_id)
     print(f"[checkout_cart] Корзина до оформления: {cart.content if cart else None}")
     if cart and cart.content.get("products"):
-        order = Order(user_id=user_id, content=cart.content.copy())
-        cart.content = {"products": []}
-        db.add(order)
-        db.commit()
-        db.refresh(order)
-        print(
-            f"[checkout_cart] Заказ создан: {order.id}, корзина после оформления: {cart.content}"
-        )
-        return order
+        try:
+            order = Order(
+                user_id=user_id,
+                content=cart.content.copy(),
+                created_at=datetime.datetime.utcnow(),
+            )
+            cart.content = {"products": []}
+            db.add(order)
+            db.commit()
+            db.refresh(order)
+            print(
+                f"[checkout_cart] Заказ создан: {order.id}, корзина после оформления: {cart.content}"
+            )
+            return order
+        except Exception as e:
+            db.rollback()
+            print(f"[checkout_cart] Ошибка при создании заказа: {str(e)}")
+            return None
     print("[checkout_cart] Заказ не создан: корзина пуста или не найдена")
     return None
 
@@ -116,7 +125,9 @@ def add_review_to_order(db: Session, order_id: int, text: str):
     """
     order = db.query(Order).get(order_id)
     if order:
-        order.review = text
+        # Базовая санитизация ввода: ограничиваем длину и удаляем потенциально опасные символы
+        sanitized_text = text.strip()[:500]  # Ограничение длины до 500 символов
+        order.review = sanitized_text
         db.commit()
 
 
@@ -125,7 +136,15 @@ def get_menu_messages(db) -> list:
     Возвращает список кортежей (текст, product_id) для меню.
     text — строка для отправки пользователю,
     product_id — id товара (для callback-кнопки).
+    Использует простой кэш для уменьшения запросов к базе данных.
     """
+    # Простой кэш в памяти (можно заменить на Redis или другой механизм кэширования)
+    if not hasattr(get_menu_messages, "_menu_messages_cache"):
+        get_menu_messages._menu_messages_cache = None
+
+    if get_menu_messages._menu_messages_cache is not None:
+        return get_menu_messages._menu_messages_cache
+
     messages = []
     categories = get_all_categories(db)
     for cat in categories:
@@ -136,4 +155,5 @@ def get_menu_messages(db) -> list:
             price = f"{prod.cost:.2f}" if prod.cost else "-"
             text = f"<b>{cat.name}</b>\n{prod.name}: {price}₽"
             messages.append((text, prod.id))
+    get_menu_messages._menu_messages_cache = messages
     return messages
